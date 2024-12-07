@@ -7,6 +7,11 @@ fn main() {
         process::exit(1)
     });
 
-    let num_good_reports = reports.lines().map(check_report).into_iter().flatten().count();
+    let mut num_good_reports = 0;
+    for line in reports.lines() {
+        if check_report(line) {
+            num_good_reports += 1;
+        }
+    }
     println!("{num_good_reports}");
 }

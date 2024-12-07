@@ -1,7 +1,5 @@
 use std::env;
 use std::fs;
-use itertools::Itertools;
-use itertools::FoldWhile::{Continue, Done};
 
 pub fn get_reports_from_file() -> Result<String, String> {
     let args: Vec<String> = env::args().collect();
@@ -21,87 +19,86 @@ pub fn get_reports_from_file() -> Result<String, String> {
     Ok(reports)
 }
 
-pub enum ReportState {
-    Uninitialized,
-    Undirected(i32),
-    Ascending(i32),
-    Descending(i32),
+pub struct Report {
+    levels: Vec<i32>
 }
 
-impl ReportState {
-    fn check_valid_increment(larger_value: i32, lower_value: i32, min_increment: i32, max_increment: i32) -> bool {
+impl Report {
+    pub fn build(report: &str) -> Report {
+        let levels = report.split_whitespace()
+            .map(|level| {level.parse::<i32>()})
+            .into_iter()
+            .flatten()  // I'm just giving up on error handling now; I had my fun on the first part
+            .collect();
+        Report { levels }
+    }
+
+    fn check_valid_increment(larger_value: i32, lower_value: i32) -> bool {
         // TODO larn me how overflow applies here
-        return larger_value - lower_value >= min_increment && larger_value - lower_value <= max_increment;
+        return larger_value - lower_value >= 1 && larger_value - lower_value <= 3;
     }
 
-    fn transition(&self, new_level: i32) -> Result<ReportState, &'static str>{
-        match self {
-            ReportState::Uninitialized => Ok(ReportState::Undirected(new_level)),
-            ReportState::Undirected(last_level) => {
-                if new_level > *last_level && ReportState::check_valid_increment(new_level, *last_level, 1, 3) {
-                    Ok(ReportState::Ascending(new_level))
-                } else if new_level < *last_level && ReportState::check_valid_increment(*last_level, new_level, 1, 3) {
-                    Ok(ReportState::Descending(new_level))
-                } else {
-                    Err("Second level same as the first")
+    fn check_valid (&self, index_to_skip: Option<usize>) -> bool {
+        let mut ascending: Option<bool> = None;
+        let mut predecessor: Option<i32> = None;
+        println!("Checking {:?}", self.levels);
+        for pair in self.levels.iter().enumerate() {
+            let (idx, num) = pair;
+            match index_to_skip {
+                Some(index) => {
+                    if index == idx {
+                        println!("Skipping idx {index}");
+                        continue;
+                    }
                 }
-            },
-            ReportState::Ascending(last_level) => {
-                if ReportState::check_valid_increment(new_level, *last_level, 1, 3) {
-                    Ok(ReportState::Ascending(new_level))
-                } else {
-                    Err("Ascending series but increment out of bounds")
-                }
-            },
-            ReportState::Descending(last_level) => {
-                if ReportState::check_valid_increment(*last_level, new_level, 1, 3) {
-                    Ok(ReportState::Descending(new_level))
-                } else {
-                    Err("Descending series but increment out of bounds")
-                }
-            },
+                None => {},
+            }
+
+            // Not using get_or_insert because I want to short-circuit on None
+            let last_num = match predecessor {
+                None => {
+                    predecessor = Some(*num);
+                    continue;
+                },
+                Some(last_num) => last_num,
+            };
+
+
+            // Tricky: if last_num == num, this is invalid. But we'll catch it below
+            // in the descending test anyway.
+            let ascending = ascending.get_or_insert(*num > last_num);
+            println!("Decided ascending should be {ascending:#?}");
+
+            // Figure out when and why I have to dereference a scalar
+            if *ascending && Report::check_valid_increment(*num, last_num){
+                predecessor = Some(*num);
+            } else if !*ascending && Report::check_valid_increment(last_num, *num) {
+                predecessor = Some(*num)
+            } else {
+                println!("Invalid increment from {} to {}", last_num, *num);
+                return false;
+            }
         }
+        true
+    }
+
+    pub fn check_valid_without_dampener(&self) -> bool {
+        self.check_valid(None)
+    }
+
+    pub fn check_valid_with_dampener(&self) -> bool {
+        for i in 0..self.levels.len() {
+            if self.check_valid(Some(i)) {
+                return true;
+            }
+        }
+        false
     }
 }
 
-pub fn check_report(report: &str) -> Result<ReportState, &'static str> {
-    report.split_whitespace()
-          .map(|level| {level.parse::<i32>()})
-          .fold_while(Ok(ReportState::Uninitialized), |state, level| {
-              // Is there an unwrappy idiom for this, or is fold_while messing me up here?
-              // The problem is that I want to return a Result from the closure, but fold_while templatizes
-              // the return type from the input type, so I have to take a Result as an input, even though I'll
-              // use Continue/Done to prevent ever running this on an Err.
-              let state: ReportState = match state {
-                  Ok(state) => state,
-                  Err(_) => { return Done(Err("Shouldn't get here"))}
-              };
-
-              let this_level: i32 = match level {
-                  Ok(i) => i,
-                  Err(e) => {
-                      eprintln!("Failed to parse level with {e:#?}");
-                      // Tricky: using ReportState::transition, which returns a Result<ReportState, &str>,
-                      // means I can't use the error from int parsing directly, because it is a ParseIntError,
-                      // and fold_while templatized the closure with the return type inferred from transition.
-                      // I tried putting a dynamic error type on transition, but that made me jump through hoops
-                      // on my string literal errors themselves. Easier to return a string error here, since I
-                      // know well enough why it happened. Ugh, and this makes me return a str error too. Need
-                      // to figure out trait objects
-                      return Done(Err("Ain't parse int from string"));
-                  },
-              };
-
-              match state.transition(this_level) {
-                  Ok(new_state) => {
-                    println!("Report {report} is ok");
-                    Continue(Ok(new_state))
-                  },
-                  Err(e) => {
-                    eprintln!("Report {report} is bad");
-                    Done(Err(e))
-                  },
-              }
-          }).into_inner()
+pub fn check_report(report_str: &str) -> bool {
+    let report = Report::build(report_str);
+    //report.check_valid_without_dampener()
+    report.check_valid_with_dampener()
 }
 
