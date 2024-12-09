@@ -1,8 +1,8 @@
 use std::env;
 use std::fs;
-use regex::{Regex, RegexBuilder};
+use regex::{Regex, RegexBuilder, Captures, Match};
 
-const MUL_RE: &str = r"mul\((\d{1,3}),(\d{1,3})\)";
+const MUL_RE: &str = r"(?:mul\((\d{1,3}),(\d{1,3})\))|(?:(do)\(\))|(?:(don't)\(\))";
 
 pub fn get_input_from_file() -> Result<String, String> {
     let args: Vec<String> = env::args().collect();
@@ -25,8 +25,28 @@ pub fn mul_re() -> Regex {
         .build()
         .unwrap() // error handling?
 }
-/*
-How do I define an iterator in rust? Guess I don't need to; the 
-search input string w/ multiline enabled for mul\((\d?1:3),(\d?1:3)\) and parse out pairs
-multiply pairs and add to accumulator
- */
+
+pub enum Symbol {
+    DO,
+    DONT,
+    MUL(u32, u32)
+}
+
+impl Symbol {
+    pub fn from_cap(cap: Captures) -> Symbol {
+        //let first_match = cap.get(1).expect("All of these have a first capture").as_str();
+        let captures: Vec<Match> = cap.iter().flatten().collect();
+        let first_match = captures[1].as_str();
+
+        match first_match {
+            "do" => Symbol::DO,
+            "don't" => Symbol::DONT,
+            a => {
+                let b = captures[2].as_str();
+                let a: u32 = a.parse().expect("How are you not a u32");
+                let b: u32 = b.parse().expect("bro come on");
+                Symbol::MUL(a, b)
+            }
+        }
+    }
+}

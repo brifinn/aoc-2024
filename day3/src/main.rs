@@ -1,4 +1,4 @@
-use day3::{get_input_from_file, mul_re};
+use day3::{get_input_from_file, mul_re, Symbol};
 use std::process;
 
 fn main() {
@@ -7,7 +7,18 @@ fn main() {
         process::exit(1)
     });
 
-    for mul in mul_re().captures_iter(reports) {
-        println!("{mul:#?}");
+    let mut sum: u32 = 0;
+    let mut enable: bool = true;
+    for s in mul_re().captures_iter(reports.as_str()).map(Symbol::from_cap) {
+        match s {
+            Symbol::DO => { enable = true; },
+            Symbol::DONT => { enable = false; },
+            Symbol::MUL(a, b) => {
+                if enable {
+                    sum += a * b
+                }
+            }
+        }
     }
+    dbg!(sum);
 }
