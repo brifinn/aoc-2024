@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
 
-pub fn get_input_from_file() -> Result<String, &'static str> {
+pub fn get_input_from_file() -> Result<String, String> {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         return Err(format!("Not enough arguments; got {args:#?}"));
