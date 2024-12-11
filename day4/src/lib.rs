@@ -23,3 +23,22 @@ pub fn matricize(input: String) -> Vec<Vec<&str>> {
     }
     matrix
 }
+
+pub fn chexmas(matrix: &Vec<Vec<&str>>, start: (isize, isize), direction: (isize, isize)) -> bool {
+    let (mut row, mut col) = start;
+    let (d_row, d_col) = direction;
+    for c in ["X", "M", "A", "S"] {
+        if row < 0 || row > matrix.len() {
+            return false;
+        }
+        if col < 0 || col > matrix[row].len() {
+            return false;
+        }
+        if matrix[x][col] != c {
+            return false;
+        }
+        row += d_row;
+        col += d_col;
+    }
+    true
+}
