@@ -16,15 +16,15 @@ pub fn get_input_from_file() -> Result<String, String> {
     Ok(reports)
 }
 
-pub fn matricize(input: String) -> Vec<Vec<&str>> {
-    let mut matrix: Vec<Vec<&str>> = Vec::new();
+pub fn matricize(input: &String) -> Vec<Vec<char>> {
+    let mut matrix: Vec<Vec<char>> = Vec::new();
     for line in input.lines() {
         matrix.push(line.chars().collect());
     }
     matrix
 }
 
-pub fn chexmas(matrix: &Vec<Vec<&str>>, start: (isize, isize), direction: (isize, isize)) -> bool {
+pub fn chexmas(matrix: &Vec<Vec<char>>, start: (usize, usize), direction: (isize, isize)) -> bool {
     let (mut row, mut col) = start;
     let (d_row, d_col) = direction;
     for c in ["X", "M", "A", "S"] {
@@ -34,7 +34,7 @@ pub fn chexmas(matrix: &Vec<Vec<&str>>, start: (isize, isize), direction: (isize
         if col < 0 || col > matrix[row].len() {
             return false;
         }
-        if matrix[x][col] != c {
+        if matrix[row][col] != c {
             return false;
         }
         row += d_row;
