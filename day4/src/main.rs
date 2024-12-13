@@ -1,4 +1,4 @@
-use day2::{get_input_from_file, matricize, chexmas};
+use day4::{get_input_from_file, matricize, chexmas};
 use std::process;
 
 fn main() {
@@ -7,7 +7,7 @@ fn main() {
         process::exit(1)
     });
 
-    let matrix = matricize(reports);
+    let matrix = matricize(&reports);
     let directions = [
         (-1, -1),
         (-1, 0),
@@ -20,10 +20,10 @@ fn main() {
     ];
 
     let mut instances: usize = 0;
-    for row in (0..matrix.len()) {
-        for col in (0..matrix[row].len()) {
+    for row in 0..matrix.len() {
+        for col in 0..matrix[row].len() {
             for direction in directions {
-                if chexmas(&matrix, (row, col), direction) {
+                if chexmas(&matrix, (row as isize, col as isize), direction) {
                     instances += 1;
                 }
             }

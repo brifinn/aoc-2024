@@ -24,17 +24,18 @@ pub fn matricize(input: &String) -> Vec<Vec<char>> {
     matrix
 }
 
-pub fn chexmas(matrix: &Vec<Vec<char>>, start: (usize, usize), direction: (isize, isize)) -> bool {
+pub fn chexmas(matrix: &Vec<Vec<char>>, start: (isize, isize), direction: (isize, isize)) -> bool {
     let (mut row, mut col) = start;
     let (d_row, d_col) = direction;
-    for c in ["X", "M", "A", "S"] {
-        if row < 0 || row > matrix.len() {
+    for c in ['X', 'M', 'A', 'S'] {
+        if row < 0 || row > matrix.len() as isize {
             return false;
         }
-        if col < 0 || col > matrix[row].len() {
+        if col < 0 || col > matrix[row as usize].len()  as isize {
             return false;
         }
-        if matrix[row][col] != c {
+        // Lazy; assuming some bounds on size
+        if matrix[row as usize][col as usize] != c {
             return false;
         }
         row += d_row;
